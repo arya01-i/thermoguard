@@ -1,0 +1,6 @@
+java-app/target/
+*.class
+climalink-log.csv
+.idea/
+*.iml
+.vscode/
