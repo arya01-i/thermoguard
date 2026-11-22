@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ClimaLink — Java Swing ↔ Arduino Smart Climate Station</title>
+<meta name="description" content="Course paper report: Java Swing GUI communicating with an Arduino climate station over USB Serial.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=JetBrains+Mono&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f8f4ec;--fg:#1d3340;--muted:#5d6f78;--card:#fffdf8;--border:#e4dccb;--primary:#1f6b73;--accent:#d9772b;--code:#17262e;--codefg:#bfe6dc}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 Manrope,system-ui,sans-serif}
+h1,h2{font-family:Fraunces,Georgia,serif;margin:0}a{color:var(--primary)}
+nav{position:sticky;top:0;background:#f8f4ecee;backdrop-filter:blur(6px);border-bottom:1px solid var(--border);z-index:5}
+nav div{max-width:1000px;margin:auto;padding:12px 20px;display:flex;gap:22px;overflow-x:auto;font-size:14px;white-space:nowrap}
+nav a{color:var(--muted);text-decoration:none}nav b{font-family:Fraunces;color:var(--primary)}
+main{max-width:1000px;margin:auto;padding:0 20px}
+.hero{padding:90px 0 70px}.tag{font:13px 'JetBrains Mono',monospace;color:var(--accent)}
+.hero h1{font-size:clamp(44px,8vw,80px);line-height:1.05;margin-top:14px}.hero h1 span{color:var(--primary)}
+.hero p{max-width:640px;font-size:18px;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:560px;margin-top:28px}
+.box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.box b{font:700 24px Fraunces}.box small{display:block;color:var(--muted)}
+section{border-top:1px solid var(--border);padding:56px 0;scroll-margin-top:60px}
+section h2{font-size:clamp(28px,4vw,38px)}section .n{font:12px 'JetBrains Mono';color:var(--accent)}
+section .body{color:var(--muted);margin-top:18px}section .body b{color:var(--fg)}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;font-size:14px}
+th,td{padding:10px 14px;text-align:left;border-top:1px solid var(--border)}th{background:#efe8da;color:var(--fg)}
+.mono,code{font-family:'JetBrains Mono',monospace}td.mono{color:var(--fg)}.dir{color:var(--accent)}
+pre{background:var(--code);color:var(--codefg);padding:16px;border-radius:10px;overflow-x:auto;font:14px 'JetBrains Mono'}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}.pin{font:18px 'JetBrains Mono';color:var(--primary)}
+figure{margin:18px 0}figure img{width:100%;border-radius:12px;border:1px solid var(--border);background:var(--card)}
+figcaption{font-size:13px;color:var(--muted)}.ph{display:none;padding:40px;text-align:center;border:2px dashed var(--border);border-radius:12px}
+.btn{display:inline-block;padding:12px 20px;border-radius:10px;background:var(--primary);color:#fff;text-decoration:none;font-weight:700;margin:4px 8px 4px 0}
+.btn.alt{background:var(--card);color:var(--fg);border:1px solid var(--border)}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:30px;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+<nav><div><b>ClimaLink</b><a href="#overview">Overview</a><a href="#components">Components</a><a href="#wiring">Wiring</a><a href="#gui">Java GUI</a><a href="#protocol">Protocol</a><a href="#implementation">Implementation</a><a href="#results">Results</a><a href="#reflection">Reflection</a></div></nav>
+<main>
+<div class="hero">
+ <div class="tag">Course Paper · Java Swing ↔ Arduino · Arya Venu · RNU 2026</div>
+ <h1>ClimaLink<br><span>Smart Climate Station</span></h1>
+ <p>A Java Swing desktop app that watches room temperature and humidity in real time over USB Serial, and opens a window, changes a status light and sounds an alarm when the climate gets uncomfortable.</p>
+ <div class="stats"><div class="box"><b>DHT11</b><small>sensor</small></div><div class="box"><b>3</b><small>actuators</small></div><div class="box"><b>9600</b><small>baud</small></div></div>
+ <p><a class="btn" href="https://github.com/arya01-i/climalink">GitHub repository</a><a class="btn alt" href="proposal.html">Proposal</a></p>
+</div>
+
+<section id="overview"><div class="n">01</div><h2>Overview</h2><div class="body">
+<p>The Arduino reads a DHT sensor every second and streams the values to the Java app. In <b>AUTO</b> mode the Arduino decides by itself: above the temperature or humidity limit it opens the servo window, turns the LED red and beeps. In <b>MANUAL</b> mode the user drives the window, LED and buzzer from the GUI.</p>
+<p>Useful for a greenhouse, server closet or classroom where ventilation should react to the climate. The prototype was first built and tested in Wokwi, then run on a real Arduino UNO from the lab.</p>
+<figure><img src="images/hardware.jpg" alt="Real hardware setup" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><div class="ph">Photo of the real hardware — add <code>docs/images/hardware.jpg</code></div><figcaption>Real setup: UNO, DHT11, servo, RGB LED, buzzer.</figcaption></figure>
+</div></section>
+
+<section id="components"><div class="n">02</div><h2>Components</h2><div class="body">
+<p>All parts are from the Laboratory Inventory (room 5-101).</p>
+<table><tr><th>Part</th><th>Lab code</th><th>Role</th></tr>
+<tr><td>Arduino UNO R3</td><td class="mono">KS0001</td><td>Controller, USB Serial</td></tr>
+<tr><td>DHT11 temperature &amp; humidity</td><td class="mono">KS0034</td><td>Input (DHT22 in Wokwi)</td></tr>
+<tr><td>Micro servo 9G</td><td class="mono">KS0209</td><td>Ventilation window 0–180°</td></tr>
+<tr><td>RGB LED module</td><td class="mono">KS0032</td><td>Status: blue cold · green OK · red alarm</td></tr>
+<tr><td>Passive buzzer</td><td class="mono">KS0019</td><td>Audible alarm</td></tr>
+<tr><td>Breadboard, wires, 3 × 220 Ω</td><td class="mono">—</td><td>Connections</td></tr></table>
+</div></section>
+
+<section id="wiring"><div class="n">03</div><h2>Wiring / Circuit</h2><div class="body">
+<div class="grid">
+<div class="box"><small>DHT data</small><div class="pin">D2</div></div>
+<div class="box"><small>Servo signal</small><div class="pin">D9 (PWM)</div></div>
+<div class="box"><small>Buzzer</small><div class="pin">D8</div></div>
+<div class="box"><small>LED R / G / B</small><div class="pin">D5 / D6 / D3</div></div>
+<div class="box"><small>Power</small><div class="pin">5V / GND</div></div></div>
+<p>LED channels use 220 Ω resistors to limit current. The servo and sensor share 5V and GND with the board. The full Wokwi circuit is in <code>arduino/diagram.json</code>.</p>
+<figure><img src="images/wokwi-circuit.png" alt="Wokwi circuit" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><div class="ph">Wokwi screenshot — add <code>docs/images/wokwi-circuit.png</code></div><figcaption>Wokwi simulation of the circuit.</figcaption></figure>
+</div></section>
+
+<section id="gui"><div class="n">04</div><h2>Java GUI</h2><div class="body">
+<figure><img src="images/gui.png" alt="Java Swing GUI" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><div class="ph">GUI screenshot — add <code>docs/images/gui.png</code></div></figure>
+<ul>
+<li><b>Connection bar</b> — COM port list, refresh ↻, Connect/Disconnect, status (timeouts, errors, reconnecting).</li>
+<li><b>Live cards</b> — temperature, humidity, window angle, alarm (green OK / red ALARM).</li>
+<li><b>Chart</b> — last 60 temperature and humidity readings.</li>
+<li><b>Controls</b> — AUTO/MANUAL toggle, window slider 0–180°, temperature limit, LED colours, buzzer, <b>▶ Demo</b> scenario, <b>Log CSV</b>.</li>
+<li><b>Serial log</b> — every sent (<code>&gt;</code>) and received (<code>&lt;</code>) line with a timestamp.</li>
+</ul></div></section>
+
+<section id="protocol"><div class="n">05</div><h2>Serial Protocol</h2><div class="body">
+<p>USB Serial, 9600 baud, 8N1, ASCII. <b>One message = one line</b> ending with <code>\n</code>. Fields separated by <code>;</code>, values as <code>key=value</code>. Every command gets a reply.</p>
+<table><tr><th>Dir</th><th>Message</th><th>Meaning</th></tr>
+<tr><td class="dir">A→J</td><td class="mono">HELLO;ClimaLink;v1.0</td><td>Board ready</td></tr>
+<tr><td class="dir">A→J</td><td class="mono">DATA;T=24.5;H=52.0;WIN=0;MODE=AUTO;ALARM=0</td><td>Telemetry every RATE ms</td></tr>
+<tr><td class="dir">A→J</td><td class="mono">ACK;&lt;cmd&gt; · ERR;&lt;code&gt;</td><td>Reply to a command</td></tr>
+<tr><td class="dir">J→A</td><td class="mono">PING → PONG</td><td>Health check (watchdog)</td></tr>
+<tr><td class="dir">J→A</td><td class="mono">MODE AUTO | MODE MANUAL</td><td>Who controls actuators</td></tr>
+<tr><td class="dir">J→A</td><td class="mono">WIN OPEN | WIN CLOSE | WIN 0–180</td><td>Servo angle (manual)</td></tr>
+<tr><td class="dir">J→A</td><td class="mono">LED r g b</td><td>RGB 0–255 (manual)</td></tr>
+<tr><td class="dir">J→A</td><td class="mono">BUZZ ON | BUZZ OFF</td><td>Buzzer</td></tr>
+<tr><td class="dir">J→A</td><td class="mono">THR T 28 · THR H 70</td><td>Alarm limits</td></tr>
+<tr><td class="dir">J→A</td><td class="mono">RATE 200–10000</td><td>Telemetry interval (ms)</td></tr></table>
+<p>Example session:</p>
+<pre>&lt; HELLO;ClimaLink;v1.0
+&lt; DATA;T=24.3;H=51.0;WIN=0;MODE=AUTO;ALARM=0
+&gt; MODE MANUAL
+&lt; ACK;MODE MANUAL
+&gt; WIN 90
+&lt; ACK;WIN 90
+&lt; DATA;T=29.1;H=48.0;WIN=90;MODE=MANUAL;ALARM=1
+&gt; WIN 500
+&lt; ERR;BAD_ANGLE</pre>
+<p>Error codes: <code>UNKNOWN_CMD</code>, <code>BAD_ANGLE</code>, <code>BAD_LED</code>, <code>BAD_RATE</code>, <code>WIN_IN_AUTO</code>, <code>LED_IN_AUTO</code>, <code>SENSOR_READ</code>.</p>
+</div></section>
+
+<section id="implementation"><div class="n">06</div><h2>Implementation Notes</h2><div class="body">
+<table><tr><th>File</th><th>Layer</th><th>Responsibility</th></tr>
+<tr><td class="mono">arduino/climalink.ino</td><td>Arduino</td><td>Non-blocking <code>loop()</code> with <code>millis()</code>: line buffer → <code>handle()</code>, timed telemetry, beep without <code>delay()</code>, input validation.</td></tr>
+<tr><td class="mono">SerialService.java</td><td>Serial</td><td>jSerialComm port open/close, background reader thread, line assembly, <code>send()</code>.</td></tr>
+<tr><td class="mono">Telemetry.java</td><td>Logic</td><td>Parses <code>DATA;…</code> lines into a record; malformed lines ignored.</td></tr>
+<tr><td class="mono">CsvLogger.java</td><td>Logic</td><td>Appends readings to <code>climalink-log.csv</code>.</td></tr>
+<tr><td class="mono">ClimateFrame.java</td><td>GUI</td><td>Swing window; updates on the Event Dispatch Thread via <code>invokeLater</code>; watchdog (PING, timeout, auto-reconnect); demo mode.</td></tr></table>
+</div></section>
+
+<section id="results"><div class="n">07</div><h2>Results</h2><div class="body"><ul>
+<li>Live temperature and humidity in the GUI every second, with a chart.</li>
+<li>AUTO: above 28 °C the window opens, LED turns red and the buzzer beeps; it returns to green when it cools.</li>
+<li>MANUAL: the slider moves the servo, buttons set LED colour and buzzer; every command is acknowledged.</li>
+<li>Wrong port, unplugged cable, silent board and invalid commands produce clear messages; the app reconnects automatically.</li>
+<li>Demo mode runs the whole scenario in under 20 seconds.</li></ul></div></section>
+
+<section id="reflection"><div class="n">08</div><h2>Reflection</h2><div class="body">
+<p><b>Difficult:</b> reading serial data without freezing the GUI — solved with a background thread and <code>SwingUtilities.invokeLater</code>. Keeping the Arduino responsive while beeping — solved by replacing <code>delay()</code> with <code>millis()</code> timing.</p>
+<p><b>Learned:</b> designing the protocol first made both sides testable separately (Wokwi Serial Monitor for Arduino, the log panel for Java).</p>
+<p><b>Next:</b> a humidity-driven fan (L9110 module, KS0168), an LCD on the board, and a history viewer for the CSV file.</p>
+</div></section>
+</main>
+<footer>ClimaLink · Course Projects 2: Java · RNU 2026 · <a href="https://github.com/arya01-i/climalink">Source on GitHub</a></footer>
+</body></html>
