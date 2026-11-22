@@ -1,4 +1,4 @@
-package climalink;
+package thermoguard;
 
 import javax.swing.SwingUtilities;
 

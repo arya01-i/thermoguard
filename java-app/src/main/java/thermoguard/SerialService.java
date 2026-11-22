@@ -1,4 +1,4 @@
-package climalink;
+package thermoguard;
 
 import com.fazecast.jSerialComm.SerialPort;
 import java.io.IOException;

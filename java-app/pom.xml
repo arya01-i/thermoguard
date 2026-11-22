@@ -1,12 +1,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>climalink</groupId><artifactId>climalink</artifactId><version>1.0</version>
+  <groupId>thermoguard</groupId><artifactId>thermoguard</artifactId><version>2.0</version>
   <properties><maven.compiler.release>17</maven.compiler.release><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding></properties>
   <dependencies>
     <dependency><groupId>com.fazecast</groupId><artifactId>jSerialComm</artifactId><version>2.11.0</version></dependency>
   </dependencies>
   <build><plugins>
     <plugin><groupId>org.codehaus.mojo</groupId><artifactId>exec-maven-plugin</artifactId><version>3.1.0</version>
-      <configuration><mainClass>climalink.Main</mainClass></configuration></plugin>
+      <configuration><mainClass>thermoguard.Main</mainClass></configuration></plugin>
   </plugins></build>
 </project>

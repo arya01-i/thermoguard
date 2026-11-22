@@ -1,4 +1,4 @@
-package climalink;
+package thermoguard;
 
 import javax.swing.*;
 import java.awt.*;
@@ -14,7 +14,7 @@ public class ClimateFrame extends JFrame {
     private final JComboBox<String> portBox = new JComboBox<>(SerialService.listPorts());
     private final JButton connectBtn = new JButton("Connect");
     private final JLabel status = new JLabel("Disconnected");
-    private final JLabel tempLbl = big("-- °C"), humLbl = big("-- %"), winLbl = big("Closed");
+    private final JLabel tempLbl = big("-- °C"), humLbl = big("-- %"), winLbl = big("Closed"), fanLbl = big("Off");
     private final JLabel alarmLbl = new JLabel("OK", SwingConstants.CENTER);
     private final JToggleButton autoBtn = new JToggleButton("AUTO mode", true);
     private final JSlider winSlider = new JSlider(0, 180, 0);
@@ -23,6 +23,8 @@ public class ClimateFrame extends JFrame {
     private final Chart chart = new Chart();
     private final JButton demoBtn = new JButton("▶ Demo");
     private final JToggleButton csvBtn = new JToggleButton("Log CSV");
+    private final JButton fanOnBtn = new JButton("Fan on");
+    private final JButton fanOffBtn = new JButton("Fan off");
     private CsvLogger csv;
     private String lastPort;
     private boolean userDisconnected = true;
@@ -32,7 +34,7 @@ public class ClimateFrame extends JFrame {
     private final DateTimeFormatter tf = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     public ClimateFrame(SerialService serial) {
-        super("ClimaLink — Smart Climate Station");
+        super("ThermoGuard — Server Cabinet Overheat Guard");
         this.serial = serial;
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new BorderLayout(8, 8));
@@ -57,10 +59,11 @@ public class ClimateFrame extends JFrame {
     }
 
     private JPanel center() {
-        JPanel readings = new JPanel(new GridLayout(1, 4, 8, 8));
+        JPanel readings = new JPanel(new GridLayout(1, 5, 8, 8));
         readings.add(card("Temperature", tempLbl));
         readings.add(card("Humidity", humLbl));
-        readings.add(card("Window", winLbl));
+        readings.add(card("Vent flap", winLbl));
+        readings.add(card("Cooling fan", fanLbl));
         alarmLbl.setOpaque(true);
         alarmLbl.setFont(alarmLbl.getFont().deriveFont(Font.BOLD, 22f));
         readings.add(card("Alarm", alarmLbl));
@@ -69,6 +72,8 @@ public class ClimateFrame extends JFrame {
         autoBtn.addActionListener(e -> {
             send(autoBtn.isSelected() ? "MODE AUTO" : "MODE MANUAL");
             winSlider.setEnabled(!autoBtn.isSelected());
+            fanOnBtn.setEnabled(!autoBtn.isSelected());
+            fanOffBtn.setEnabled(!autoBtn.isSelected());
         });
         winSlider.setMajorTickSpacing(45); winSlider.setPaintTicks(true); winSlider.setPaintLabels(true);
         winSlider.addChangeListener(e -> { if (!winSlider.getValueIsAdjusting()) send("WIN " + winSlider.getValue()); });
@@ -77,10 +82,12 @@ public class ClimateFrame extends JFrame {
         JButton[] leds = { colorBtn("Red", "LED 255 0 0"), colorBtn("Green", "LED 0 255 0"), colorBtn("Blue", "LED 0 0 255"), colorBtn("Off", "LED 0 0 0") };
         JToggleButton buzz = new JToggleButton("Buzzer");
         buzz.addActionListener(e -> send(buzz.isSelected() ? "BUZZ ON" : "BUZZ OFF"));
-        controls.add(autoBtn); controls.add(new JLabel("Window°")); controls.add(winSlider);
+        fanOnBtn.addActionListener(e -> send("FAN ON"));
+        fanOffBtn.addActionListener(e -> send("FAN OFF"));
+        controls.add(autoBtn); controls.add(new JLabel("Vent°")); controls.add(winSlider);
         controls.add(new JLabel("Temp limit")); controls.add(thrT); controls.add(thrBtn);
         for (JButton b : leds) controls.add(b);
-        controls.add(buzz);
+        controls.add(buzz); controls.add(fanOnBtn); controls.add(fanOffBtn);
         demoBtn.addActionListener(e -> runDemo());
         csvBtn.addActionListener(e -> toggleCsv());
         controls.add(demoBtn); controls.add(csvBtn);
@@ -116,17 +123,15 @@ public class ClimateFrame extends JFrame {
     }
 
     private void open(String name) throws Exception {
-        {
-            serial.connect(name,
-                    line -> SwingUtilities.invokeLater(() -> onLine(line)),
-                    err -> SwingUtilities.invokeLater(() -> onDisconnected(err)));
-            status.setText("Connected to " + name);
-            connectBtn.setText("Disconnect");
-            setControlsEnabled(true);
-            append("-- connected " + name);
-            lastPort = name;
-            userDisconnected = false;
-        }
+        serial.connect(name,
+                line -> SwingUtilities.invokeLater(() -> onLine(line)),
+                err -> SwingUtilities.invokeLater(() -> onDisconnected(err)));
+        status.setText("Connected to " + name);
+        connectBtn.setText("Disconnect");
+        setControlsEnabled(true);
+        append("-- connected " + name);
+        lastPort = name;
+        userDisconnected = false;
     }
 
     private void watchdogTick() {
@@ -143,8 +148,8 @@ public class ClimateFrame extends JFrame {
     /** Demo mode: a predefined 2-minute-friendly scenario that exercises every command. */
     private void runDemo() {
         if (demoTimer != null && demoTimer.isRunning()) { demoTimer.stop(); demoBtn.setText("▶ Demo"); return; }
-        String[] steps = { "MODE MANUAL", "LED 0 0 255", "WIN 45", "LED 0 255 0", "WIN 90", "LED 255 0 0",
-                "BUZZ ON", "BUZZ OFF", "WIN 0", "THR T 20", "MODE AUTO", "THR T 28" };
+        String[] steps = { "MODE MANUAL", "LED 0 0 255", "WIN 45", "FAN ON", "LED 0 255 0", "WIN 90",
+                "LED 255 0 0", "BUZZ ON", "BUZZ OFF", "FAN OFF", "WIN 0", "THR T 20", "MODE AUTO", "THR T 28" };
         int[] i = {0};
         demoBtn.setText("■ Stop");
         demoTimer = new Timer(1500, e -> {
@@ -156,7 +161,7 @@ public class ClimateFrame extends JFrame {
 
     private void toggleCsv() {
         try {
-            if (csvBtn.isSelected()) { File f = new File("climalink-log.csv"); csv = new CsvLogger(f); append("-- logging to " + f.getAbsolutePath()); }
+            if (csvBtn.isSelected()) { File f = new File("thermoguard-log.csv"); csv = new CsvLogger(f); append("-- logging to " + f.getAbsolutePath()); }
             else if (csv != null) { csv.close(); csv = null; append("-- CSV logging stopped"); }
         } catch (Exception ex) { csvBtn.setSelected(false); status.setText("CSV error: " + ex.getMessage()); }
     }
@@ -177,6 +182,8 @@ public class ClimateFrame extends JFrame {
             tempLbl.setText(String.format("%.1f °C", t.temp()));
             humLbl.setText(String.format("%.1f %%", t.hum()));
             winLbl.setText(t.window() == 0 ? "Closed" : "Open " + t.window() + "°");
+            fanLbl.setText(t.fan() ? "RUNNING" : "Off");
+            fanLbl.setForeground(t.fan() ? new Color(0x0090FF) : Color.BLACK);
             alarmLbl.setText(t.alarm() ? "ALARM" : "OK");
             alarmLbl.setBackground(t.alarm() ? new Color(0xE5484D) : new Color(0x30A46C));
             chart.add(t.temp(), t.hum());
@@ -195,6 +202,8 @@ public class ClimateFrame extends JFrame {
     private void setControlsEnabled(boolean on) {
         autoBtn.setEnabled(on); thrT.setEnabled(on); demoBtn.setEnabled(on);
         winSlider.setEnabled(on && !autoBtn.isSelected());
+        fanOnBtn.setEnabled(on && !autoBtn.isSelected());
+        fanOffBtn.setEnabled(on && !autoBtn.isSelected());
     }
 
     private void append(String s) {
