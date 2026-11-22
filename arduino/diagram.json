@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "author": "Arya Venu",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-arduino-uno", "id": "uno", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-dht22", "id": "dht", "top": -120, "left": 300, "attrs": {} },
+    { "type": "wokwi-servo", "id": "servo", "top": 230, "left": 380, "attrs": {} },
+    { "type": "wokwi-buzzer", "id": "bz", "top": -130, "left": 170, "attrs": { "volume": "0.2" } },
+    { "type": "wokwi-rgb-led", "id": "rgb", "top": -130, "left": 60, "attrs": { "common": "cathode" } },
+    { "type": "wokwi-resistor", "id": "r1", "top": -40, "left": 20, "attrs": { "value": "220" } },
+    { "type": "wokwi-resistor", "id": "r2", "top": -20, "left": 20, "attrs": { "value": "220" } },
+    { "type": "wokwi-resistor", "id": "r3", "top": 0, "left": 20, "attrs": { "value": "220" } }
+  ],
+  "connections": [
+    [ "dht:VCC", "uno:5V", "red", [] ],
+    [ "dht:GND", "uno:GND.2", "black", [] ],
+    [ "dht:SDA", "uno:2", "green", [] ],
+    [ "servo:V+", "uno:5V", "red", [] ],
+    [ "servo:GND", "uno:GND.3", "black", [] ],
+    [ "servo:PWM", "uno:9", "orange", [] ],
+    [ "bz:1", "uno:GND.1", "black", [] ],
+    [ "bz:2", "uno:8", "purple", [] ],
+    [ "rgb:R", "r1:1", "red", [] ], [ "r1:2", "uno:5", "red", [] ],
+    [ "rgb:G", "r2:1", "green", [] ], [ "r2:2", "uno:6", "green", [] ],
+    [ "rgb:B", "r3:1", "blue", [] ], [ "r3:2", "uno:3", "blue", [] ],
+    [ "rgb:COM", "uno:GND.1", "black", [] ]
+  ]
+}
