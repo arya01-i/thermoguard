@@ -10,7 +10,11 @@
     { "type": "wokwi-rgb-led", "id": "rgb", "top": -130, "left": 60, "attrs": { "common": "cathode" } },
     { "type": "wokwi-resistor", "id": "r1", "top": -40, "left": 20, "attrs": { "value": "220" } },
     { "type": "wokwi-resistor", "id": "r2", "top": -20, "left": 20, "attrs": { "value": "220" } },
-    { "type": "wokwi-resistor", "id": "r3", "top": 0, "left": 20, "attrs": { "value": "220" } }
+    { "type": "wokwi-resistor", "id": "r3", "top": 0, "left": 20, "attrs": { "value": "220" } },
+    { "type": "wokwi-relay-module", "id": "relay", "top": 250, "left": 120, "attrs": { "transistor": "pnp" } },
+    { "type": "wokwi-resistor", "id": "r4", "top": 160, "left": 320, "attrs": { "value": "220" } },
+    { "type": "wokwi-led", "id": "fan", "top": 120, "left": 400, "attrs": { "color": "cyan", "label": "FAN" } },
+    { "type": "wokwi-text", "id": "t1", "top": 90, "left": 380, "attrs": { "text": "cooling fan (via relay)" } }
   ],
   "connections": [
     [ "dht:VCC", "uno:5V", "red", [] ],
@@ -24,6 +28,13 @@
     [ "rgb:R", "r1:1", "red", [] ], [ "r1:2", "uno:5", "red", [] ],
     [ "rgb:G", "r2:1", "green", [] ], [ "r2:2", "uno:6", "green", [] ],
     [ "rgb:B", "r3:1", "blue", [] ], [ "r3:2", "uno:3", "blue", [] ],
-    [ "rgb:COM", "uno:GND.1", "black", [] ]
+    [ "rgb:COM", "uno:GND.1", "black", [] ],
+    [ "relay:VCC", "uno:5V", "red", [] ],
+    [ "relay:GND", "uno:GND.2", "black", [] ],
+    [ "relay:IN", "uno:7", "yellow", [] ],
+    [ "relay:COM", "uno:5V", "red", [] ],
+    [ "relay:NO", "r4:1", "cyan", [] ],
+    [ "r4:2", "fan:A", "cyan", [] ],
+    [ "fan:C", "uno:GND.3", "black", [] ]
   ]
 }
