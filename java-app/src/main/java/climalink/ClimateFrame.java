@@ -6,6 +6,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.io.File;
 
 /** GUI layer: connection bar, live readings, controls, history chart, serial log. */
 public class ClimateFrame extends JFrame {
@@ -20,6 +21,14 @@ public class ClimateFrame extends JFrame {
     private final JSpinner thrT = new JSpinner(new SpinnerNumberModel(28.0, 10.0, 50.0, 0.5));
     private final JTextArea log = new JTextArea(8, 40);
     private final Chart chart = new Chart();
+    private final JButton demoBtn = new JButton("▶ Demo");
+    private final JToggleButton csvBtn = new JToggleButton("Log CSV");
+    private CsvLogger csv;
+    private String lastPort;
+    private boolean userDisconnected = true;
+    private Timer demoTimer;
+    /** Watchdog: PING when quiet, mark timeout, auto-reconnect after a cable drop. */
+    private final Timer watchdog = new Timer(1000, e -> watchdogTick());
     private final DateTimeFormatter tf = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     public ClimateFrame(SerialService serial) {
@@ -33,6 +42,7 @@ public class ClimateFrame extends JFrame {
         log.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         add(new JScrollPane(log), BorderLayout.SOUTH);
         setControlsEnabled(false);
+        watchdog.start();
         pack();
         setLocationRelativeTo(null);
     }
@@ -71,6 +81,9 @@ public class ClimateFrame extends JFrame {
         controls.add(new JLabel("Temp limit")); controls.add(thrT); controls.add(thrBtn);
         for (JButton b : leds) controls.add(b);
         controls.add(buzz);
+        demoBtn.addActionListener(e -> runDemo());
+        csvBtn.addActionListener(e -> toggleCsv());
+        controls.add(demoBtn); controls.add(csvBtn);
 
         JPanel c = new JPanel(new BorderLayout(8, 8));
         c.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8));
@@ -88,6 +101,7 @@ public class ClimateFrame extends JFrame {
 
     private void toggleConnection() {
         if (serial.isConnected()) {
+            userDisconnected = true;
             serial.disconnect();
             onDisconnected("Disconnected");
             return;
@@ -95,6 +109,14 @@ public class ClimateFrame extends JFrame {
         String name = (String) portBox.getSelectedItem();
         if (name == null) { JOptionPane.showMessageDialog(this, "No serial port found. Plug in the Arduino and press ↻."); return; }
         try {
+            open(name);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Connection error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void open(String name) throws Exception {
+        {
             serial.connect(name,
                     line -> SwingUtilities.invokeLater(() -> onLine(line)),
                     err -> SwingUtilities.invokeLater(() -> onDisconnected(err)));
@@ -102,12 +124,45 @@ public class ClimateFrame extends JFrame {
             connectBtn.setText("Disconnect");
             setControlsEnabled(true);
             append("-- connected " + name);
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Connection error", JOptionPane.ERROR_MESSAGE);
+            lastPort = name;
+            userDisconnected = false;
         }
     }
 
+    private void watchdogTick() {
+        if (serial.isConnected()) {
+            long quiet = serial.millisSinceLastRx();
+            if (quiet > 6000) status.setText("Timeout: no data from Arduino for " + quiet / 1000 + " s");
+            else if (quiet > 3000) send("PING");
+        } else if (!userDisconnected && lastPort != null) {
+            // cable was unplugged: try to reopen the same port every second
+            try { open(lastPort); append("-- reconnected"); } catch (Exception ignored) { status.setText("Reconnecting to " + lastPort + "…"); }
+        }
+    }
+
+    /** Demo mode: a predefined 2-minute-friendly scenario that exercises every command. */
+    private void runDemo() {
+        if (demoTimer != null && demoTimer.isRunning()) { demoTimer.stop(); demoBtn.setText("▶ Demo"); return; }
+        String[] steps = { "MODE MANUAL", "LED 0 0 255", "WIN 45", "LED 0 255 0", "WIN 90", "LED 255 0 0",
+                "BUZZ ON", "BUZZ OFF", "WIN 0", "THR T 20", "MODE AUTO", "THR T 28" };
+        int[] i = {0};
+        demoBtn.setText("■ Stop");
+        demoTimer = new Timer(1500, e -> {
+            if (i[0] >= steps.length) { demoTimer.stop(); demoBtn.setText("▶ Demo"); autoBtn.setSelected(true); return; }
+            send(steps[i[0]++]);
+        });
+        demoTimer.start();
+    }
+
+    private void toggleCsv() {
+        try {
+            if (csvBtn.isSelected()) { File f = new File("climalink-log.csv"); csv = new CsvLogger(f); append("-- logging to " + f.getAbsolutePath()); }
+            else if (csv != null) { csv.close(); csv = null; append("-- CSV logging stopped"); }
+        } catch (Exception ex) { csvBtn.setSelected(false); status.setText("CSV error: " + ex.getMessage()); }
+    }
+
     private void onDisconnected(String msg) {
+        if (demoTimer != null) demoTimer.stop();
         serial.disconnect();
         status.setText(msg);
         connectBtn.setText("Connect");
@@ -125,6 +180,8 @@ public class ClimateFrame extends JFrame {
             alarmLbl.setText(t.alarm() ? "ALARM" : "OK");
             alarmLbl.setBackground(t.alarm() ? new Color(0xE5484D) : new Color(0x30A46C));
             chart.add(t.temp(), t.hum());
+            if (csv != null) csv.log(t);
+            if (!status.getText().startsWith("Connected")) status.setText("Connected to " + serial.portName());
         } else if (line.startsWith("ERR;")) {
             status.setText("Arduino error: " + line.substring(4));
         }
@@ -136,7 +193,7 @@ public class ClimateFrame extends JFrame {
     }
 
     private void setControlsEnabled(boolean on) {
-        autoBtn.setEnabled(on); thrT.setEnabled(on);
+        autoBtn.setEnabled(on); thrT.setEnabled(on); demoBtn.setEnabled(on);
         winSlider.setEnabled(on && !autoBtn.isSelected());
     }
 
