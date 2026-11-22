@@ -2,8 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ClimaLink — Java Swing ↔ Arduino Smart Climate Station</title>
-<meta name="description" content="Course paper report: Java Swing GUI communicating with an Arduino climate station over USB Serial.">
+<title>ThermoGuard — Java Swing ↔ Arduino Server Cabinet Overheat Guard</title>
+<meta name="description" content="Course paper report: a Java Swing GUI that watches the climate inside a server cabinet and drives a vent, a relay-switched cooling fan, a status light and an alarm over USB Serial from an Arduino.">
+<meta property="og:title" content="ThermoGuard — Server Cabinet Overheat Guard">
+<meta property="og:description" content="Java Swing ↔ Arduino over USB Serial: live cabinet readings, servo vent, relay-driven cooling fan, RGB status and buzzer alarm.">
+<meta property="og:type" content="article">
+<meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=JetBrains+Mono&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -36,31 +40,35 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:30px;border-t
 </style>
 </head>
 <body>
-<nav><div><b>ClimaLink</b><a href="#overview">Overview</a><a href="#components">Components</a><a href="#wiring">Wiring</a><a href="#gui">Java GUI</a><a href="#protocol">Protocol</a><a href="#implementation">Implementation</a><a href="#results">Results</a><a href="#reflection">Reflection</a></div></nav>
+<nav><div><b>ThermoGuard</b><a href="#overview">Overview</a><a href="#components">Components</a><a href="#wiring">Wiring</a><a href="#gui">Java GUI</a><a href="#protocol">Protocol</a><a href="#implementation">Implementation</a><a href="#results">Results</a><a href="#reflection">Reflection</a></div></nav>
 <main>
 <div class="hero">
  <div class="tag">Course Paper · Java Swing ↔ Arduino · Arya Venu · RNU 2026</div>
- <h1>ClimaLink<br><span>Smart Climate Station</span></h1>
- <p>A Java Swing desktop app that watches room temperature and humidity in real time over USB Serial, and opens a window, changes a status light and sounds an alarm when the climate gets uncomfortable.</p>
- <div class="stats"><div class="box"><b>DHT11</b><small>sensor</small></div><div class="box"><b>3</b><small>actuators</small></div><div class="box"><b>9600</b><small>baud</small></div></div>
- <p><a class="btn" href="https://github.com/arya01-i/climalink">GitHub repository</a><a class="btn alt" href="proposal.html">Proposal</a></p>
+ <h1>ThermoGuard<br><span>Server Cabinet Overheat Guard</span></h1>
+ <p>A Java Swing desktop app that watches the air inside an equipment cabinet over USB Serial and reacts to overheating on its own: it opens a vent flap, switches on a cooling fan through a relay, shows the status on a light and sounds an alarm.</p>
+ <div class="stats"><div class="box"><b>DHT11</b><small>sensor</small></div><div class="box"><b>4</b><small>outputs</small></div><div class="box"><b>9600</b><small>baud</small></div></div>
+ <p><a class="btn" href="https://github.com/arya01-i/thermoguard">GitHub repository</a><a class="btn alt" href="proposal.html">Proposal</a></p>
 </div>
 
 <section id="overview"><div class="n">01</div><h2>Overview</h2><div class="body">
-<p>The Arduino reads a DHT sensor every second and streams the values to the Java app. In <b>AUTO</b> mode the Arduino decides by itself: above the temperature or humidity limit it opens the servo window, turns the LED red and beeps. In <b>MANUAL</b> mode the user drives the window, LED and buzzer from the GUI.</p>
-<p>Useful for a greenhouse, server closet or classroom where ventilation should react to the climate. The prototype was first built and tested in Wokwi, then run on a real Arduino UNO from the lab.</p>
-<figure><img src="images/hardware.jpg" alt="Real hardware setup" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><div class="ph">Photo of the real hardware — add <code>docs/images/hardware.jpg</code></div><figcaption>Real setup: UNO, DHT11, servo, RGB LED, buzzer.</figcaption></figure>
+<p>A server or network cabinet traps heat, and when the air inside gets too hot the equipment throttles or fails. ThermoGuard measures that air and reacts without a person: above the limit the vent flap opens and the cooling fan starts; when it cools the vent closes and the fan stops.</p>
+<p>The Arduino reads the DHT sensor every second and streams the values to the Java app. In <b>AUTO</b> mode the Arduino decides by itself: above the temperature or humidity limit it opens the servo vent, switches the fan on through the relay, turns the LED red and beeps. In <b>MANUAL</b> mode the user drives the vent, fan, LED and buzzer from the GUI.</p>
+<p>The prototype was built and tested in Wokwi first, then run on a real Arduino UNO from the lab.</p>
+<figure><img src="images/hardware.jpg" alt="Real hardware setup" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><div class="ph">Photo of the real hardware — add <code>docs/images/hardware.jpg</code></div><figcaption>Real setup: UNO, DHT11, servo vent, relay + fan, RGB LED, buzzer.</figcaption></figure>
 </div></section>
 
 <section id="components"><div class="n">02</div><h2>Components</h2><div class="body">
 <p>All parts are from the Laboratory Inventory (room 5-101).</p>
 <table><tr><th>Part</th><th>Lab code</th><th>Role</th></tr>
 <tr><td>Arduino UNO R3</td><td class="mono">KS0001</td><td>Controller, USB Serial</td></tr>
-<tr><td>DHT11 temperature &amp; humidity</td><td class="mono">KS0034</td><td>Input (DHT22 in Wokwi)</td></tr>
-<tr><td>Micro servo 9G</td><td class="mono">KS0209</td><td>Ventilation window 0–180°</td></tr>
+<tr><td>DHT11 temperature &amp; humidity</td><td class="mono">KS0034</td><td>Input: air inside the cabinet (DHT22 in Wokwi)</td></tr>
+<tr><td>Micro servo 9G</td><td class="mono">KS0209</td><td>Vent flap 0–180°</td></tr>
+<tr><td>Single relay 5V module</td><td class="mono">—</td><td>Switches the cooling fan</td></tr>
+<tr><td>12 V DC cooling fan</td><td class="mono">—</td><td>Output: removes hot air</td></tr>
 <tr><td>RGB LED module</td><td class="mono">KS0032</td><td>Status: blue cold · green OK · red alarm</td></tr>
 <tr><td>Passive buzzer</td><td class="mono">KS0019</td><td>Audible alarm</td></tr>
 <tr><td>Breadboard, wires, 3 × 220 Ω</td><td class="mono">—</td><td>Connections</td></tr></table>
+<p>The relay sits in the fan's own supply wire, so the fan's current never passes through an Arduino pin — the board only tells the relay "on" or "off". In Wokwi the fan is modelled by an LED switched through the relay, because Wokwi has no DC motor part. The lab's L9110 Fan Motor Control Module (KS0168) is the alternative driver.</p>
 </div></section>
 
 <section id="wiring"><div class="n">03</div><h2>Wiring / Circuit</h2><div class="body">
@@ -68,9 +76,10 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:30px;border-t
 <div class="box"><small>DHT data</small><div class="pin">D2</div></div>
 <div class="box"><small>Servo signal</small><div class="pin">D9 (PWM)</div></div>
 <div class="box"><small>Buzzer</small><div class="pin">D8</div></div>
+<div class="box"><small>Relay IN (fan)</small><div class="pin">D7</div></div>
 <div class="box"><small>LED R / G / B</small><div class="pin">D5 / D6 / D3</div></div>
 <div class="box"><small>Power</small><div class="pin">5V / GND</div></div></div>
-<p>LED channels use 220 Ω resistors to limit current. The servo and sensor share 5V and GND with the board. The full Wokwi circuit is in <code>arduino/diagram.json</code>.</p>
+<p>The three LED channels each run through a 220 Ω resistor to limit current. The servo, sensor and relay coil share 5V and GND with the board. The fan hangs off the relay's normally-open contact, not off a pin. The full Wokwi circuit is in <code>arduino/diagram.json</code>.</p>
 <figure><img src="images/wokwi-circuit.png" alt="Wokwi circuit" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><div class="ph">Wokwi screenshot — add <code>docs/images/wokwi-circuit.png</code></div><figcaption>Wokwi simulation of the circuit.</figcaption></figure>
 </div></section>
 
@@ -78,59 +87,62 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:30px;border-t
 <figure><img src="images/gui.png" alt="Java Swing GUI" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><div class="ph">GUI screenshot — add <code>docs/images/gui.png</code></div></figure>
 <ul>
 <li><b>Connection bar</b> — COM port list, refresh ↻, Connect/Disconnect, status (timeouts, errors, reconnecting).</li>
-<li><b>Live cards</b> — temperature, humidity, window angle, alarm (green OK / red ALARM).</li>
+<li><b>Live cards</b> — temperature, humidity, vent angle, cooling fan, alarm (green OK / red ALARM).</li>
 <li><b>Chart</b> — last 60 temperature and humidity readings.</li>
-<li><b>Controls</b> — AUTO/MANUAL toggle, window slider 0–180°, temperature limit, LED colours, buzzer, <b>▶ Demo</b> scenario, <b>Log CSV</b>.</li>
+<li><b>Controls</b> — AUTO/MANUAL toggle, vent slider 0–180°, temperature limit, <b>Fan on / Fan off</b>, LED colours, buzzer, <b>▶ Demo</b> scenario, <b>Log CSV</b>.</li>
 <li><b>Serial log</b> — every sent (<code>&gt;</code>) and received (<code>&lt;</code>) line with a timestamp.</li>
 </ul></div></section>
 
 <section id="protocol"><div class="n">05</div><h2>Serial Protocol</h2><div class="body">
 <p>USB Serial, 9600 baud, 8N1, ASCII. <b>One message = one line</b> ending with <code>\n</code>. Fields separated by <code>;</code>, values as <code>key=value</code>. Every command gets a reply.</p>
 <table><tr><th>Dir</th><th>Message</th><th>Meaning</th></tr>
-<tr><td class="dir">A→J</td><td class="mono">HELLO;ClimaLink;v1.0</td><td>Board ready</td></tr>
-<tr><td class="dir">A→J</td><td class="mono">DATA;T=24.5;H=52.0;WIN=0;MODE=AUTO;ALARM=0</td><td>Telemetry every RATE ms</td></tr>
+<tr><td class="dir">A→J</td><td class="mono">HELLO;ThermoGuard;v2.0</td><td>Board ready</td></tr>
+<tr><td class="dir">A→J</td><td class="mono">DATA;T=24.5;H=52.0;WIN=0;FAN=0;MODE=AUTO;ALARM=0</td><td>Telemetry every RATE ms</td></tr>
 <tr><td class="dir">A→J</td><td class="mono">ACK;&lt;cmd&gt; · ERR;&lt;code&gt;</td><td>Reply to a command</td></tr>
 <tr><td class="dir">J→A</td><td class="mono">PING → PONG</td><td>Health check (watchdog)</td></tr>
 <tr><td class="dir">J→A</td><td class="mono">MODE AUTO | MODE MANUAL</td><td>Who controls actuators</td></tr>
-<tr><td class="dir">J→A</td><td class="mono">WIN OPEN | WIN CLOSE | WIN 0–180</td><td>Servo angle (manual)</td></tr>
+<tr><td class="dir">J→A</td><td class="mono">WIN OPEN | WIN CLOSE | WIN 0–180</td><td>Servo vent (manual)</td></tr>
+<tr><td class="dir">J→A</td><td class="mono">FAN ON | FAN OFF</td><td>Cooling fan (manual)</td></tr>
 <tr><td class="dir">J→A</td><td class="mono">LED r g b</td><td>RGB 0–255 (manual)</td></tr>
 <tr><td class="dir">J→A</td><td class="mono">BUZZ ON | BUZZ OFF</td><td>Buzzer</td></tr>
 <tr><td class="dir">J→A</td><td class="mono">THR T 28 · THR H 70</td><td>Alarm limits</td></tr>
 <tr><td class="dir">J→A</td><td class="mono">RATE 200–10000</td><td>Telemetry interval (ms)</td></tr></table>
 <p>Example session:</p>
-<pre>&lt; HELLO;ClimaLink;v1.0
-&lt; DATA;T=24.3;H=51.0;WIN=0;MODE=AUTO;ALARM=0
+<pre>&lt; HELLO;ThermoGuard;v2.0
+&lt; DATA;T=24.3;H=51.0;WIN=0;FAN=0;MODE=AUTO;ALARM=0
 &gt; MODE MANUAL
 &lt; ACK;MODE MANUAL
-&gt; WIN 90
-&lt; ACK;WIN 90
-&lt; DATA;T=29.1;H=48.0;WIN=90;MODE=MANUAL;ALARM=1
-&gt; WIN 500
-&lt; ERR;BAD_ANGLE</pre>
-<p>Error codes: <code>UNKNOWN_CMD</code>, <code>BAD_ANGLE</code>, <code>BAD_LED</code>, <code>BAD_RATE</code>, <code>WIN_IN_AUTO</code>, <code>LED_IN_AUTO</code>, <code>SENSOR_READ</code>.</p>
+&gt; FAN ON
+&lt; ACK;FAN ON
+&lt; DATA;T=29.1;H=48.0;WIN=90;FAN=1;MODE=MANUAL;ALARM=1
+&gt; FAN ON
+&lt; ERR;FAN_IN_AUTO</pre>
+<p>Error codes: <code>UNKNOWN_CMD</code>, <code>BAD_ANGLE</code>, <code>BAD_LED</code>, <code>BAD_RATE</code>, <code>BAD_LIMIT</code>, <code>WIN_IN_AUTO</code>, <code>LED_IN_AUTO</code>, <code>FAN_IN_AUTO</code>, <code>SENSOR_READ</code>.</p>
 </div></section>
 
 <section id="implementation"><div class="n">06</div><h2>Implementation Notes</h2><div class="body">
 <table><tr><th>File</th><th>Layer</th><th>Responsibility</th></tr>
-<tr><td class="mono">arduino/climalink.ino</td><td>Arduino</td><td>Non-blocking <code>loop()</code> with <code>millis()</code>: line buffer → <code>handle()</code>, timed telemetry, beep without <code>delay()</code>, input validation.</td></tr>
+<tr><td class="mono">arduino/thermoguard.ino</td><td>Arduino</td><td>Non-blocking <code>loop()</code> with <code>millis()</code>: line buffer → <code>handle()</code>, timed telemetry, beep without <code>delay()</code>, relay output with hysteresis, input validation.</td></tr>
 <tr><td class="mono">SerialService.java</td><td>Serial</td><td>jSerialComm port open/close, background reader thread, line assembly, <code>send()</code>.</td></tr>
 <tr><td class="mono">Telemetry.java</td><td>Logic</td><td>Parses <code>DATA;…</code> lines into a record; malformed lines ignored.</td></tr>
-<tr><td class="mono">CsvLogger.java</td><td>Logic</td><td>Appends readings to <code>climalink-log.csv</code>.</td></tr>
+<tr><td class="mono">CsvLogger.java</td><td>Logic</td><td>Appends readings to <code>thermoguard-log.csv</code>.</td></tr>
 <tr><td class="mono">ClimateFrame.java</td><td>GUI</td><td>Swing window; updates on the Event Dispatch Thread via <code>invokeLater</code>; watchdog (PING, timeout, auto-reconnect); demo mode.</td></tr></table>
+<p><b>Hysteresis on the fan.</b> The fan starts when the temperature crosses the limit but stops only 1.5 °C below it. Without that gap the relay would click on and off every second while the temperature sits exactly on the limit, which is both noisy and hard on the relay.</p>
 </div></section>
 
 <section id="results"><div class="n">07</div><h2>Results</h2><div class="body"><ul>
-<li>Live temperature and humidity in the GUI every second, with a chart.</li>
-<li>AUTO: above 28 °C the window opens, LED turns red and the buzzer beeps; it returns to green when it cools.</li>
-<li>MANUAL: the slider moves the servo, buttons set LED colour and buzzer; every command is acknowledged.</li>
+<li>Live temperature and humidity in the GUI every second, with a chart of the last 60 readings.</li>
+<li>AUTO: above 28 °C the vent opens, the fan starts, the LED turns red and the buzzer beeps; it returns to green when it cools.</li>
+<li>The fan keeps running until the temperature falls 1.5 °C below the limit, then stops — the hysteresis is visible in the log.</li>
+<li>MANUAL: the slider moves the servo vent, <b>Fan on / Fan off</b> switch the relay, buttons set LED colour and buzzer; every command is acknowledged.</li>
 <li>Wrong port, unplugged cable, silent board and invalid commands produce clear messages; the app reconnects automatically.</li>
-<li>Demo mode runs the whole scenario in under 20 seconds.</li></ul></div></section>
+<li>Demo mode runs the whole scenario in under 25 seconds.</li></ul></div></section>
 
 <section id="reflection"><div class="n">08</div><h2>Reflection</h2><div class="body">
-<p><b>Difficult:</b> reading serial data without freezing the GUI — solved with a background thread and <code>SwingUtilities.invokeLater</code>. Keeping the Arduino responsive while beeping — solved by replacing <code>delay()</code> with <code>millis()</code> timing.</p>
-<p><b>Learned:</b> designing the protocol first made both sides testable separately (Wokwi Serial Monitor for Arduino, the log panel for Java).</p>
-<p><b>Next:</b> a humidity-driven fan (L9110 module, KS0168), an LCD on the board, and a history viewer for the CSV file.</p>
+<p><b>Difficult:</b> reading serial data without freezing the GUI — solved with a background thread and <code>SwingUtilities.invokeLater</code>. Keeping the Arduino responsive while beeping — solved by replacing <code>delay()</code> with <code>millis()</code> timing. Making the fan behave sensibly near the limit — solved with hysteresis instead of a plain threshold.</p>
+<p><b>Learned:</b> designing the protocol first made both sides testable separately (Wokwi Serial Monitor for Arduino, the log panel for Java). A relay is not just an extra output: it changes how you think about where the current comes from.</p>
+<p><b>Next:</b> an LCD on the cabinet itself, a history viewer for the CSV file, and a second sensor so one reading can be compared with the room.</p>
 </div></section>
 </main>
-<footer>ClimaLink · Course Projects 2: Java · RNU 2026 · <a href="https://github.com/arya01-i/climalink">Source on GitHub</a></footer>
+<footer>ThermoGuard · Course Projects 2: Java · RNU 2026 · <a href="https://github.com/arya01-i/thermoguard">Source on GitHub</a></footer>
 </body></html>
