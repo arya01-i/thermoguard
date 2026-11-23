@@ -11,7 +11,7 @@
     { "type": "wokwi-resistor", "id": "r1", "top": -40, "left": 20, "attrs": { "value": "220" } },
     { "type": "wokwi-resistor", "id": "r2", "top": -20, "left": 20, "attrs": { "value": "220" } },
     { "type": "wokwi-resistor", "id": "r3", "top": 0, "left": 20, "attrs": { "value": "220" } },
-    { "type": "wokwi-relay-module", "id": "relay", "top": 250, "left": 120, "attrs": { "transistor": "pnp" } },
+    { "type": "wokwi-relay-module", "id": "relay", "top": 250, "left": 120, "attrs": {} },
     { "type": "wokwi-resistor", "id": "r4", "top": 160, "left": 320, "attrs": { "value": "220" } },
     { "type": "wokwi-led", "id": "fan", "top": 120, "left": 400, "attrs": { "color": "cyan", "label": "FAN" } },
     { "type": "wokwi-text", "id": "t1", "top": 90, "left": 380, "attrs": { "text": "cooling fan (via relay)" } }
